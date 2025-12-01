@@ -8,15 +8,14 @@ const port = 3000;
 // Middleware pour décoder le formulaire
 app.use(bodyParser.urlencoded({ extended: false }));
 
-// Connexion à la base (aucun chiffrement, mots de passe en clair, etc. => volontairement mauvais)
 const connection = mysql.createConnection({
     host: process.env.DB_HOST || "vuln-db",
     user: process.env.DB_USER || "insecure_user",
     password: process.env.DB_PASSWORD || "insecure_pass",
-    database: process.env.DB_NAME || "insecure_app"
+    database: process.env.DB_NAME || "insecure_app",
 });
 
-connection.connect(err => {
+connection.connect((err) => {
     if (err) {
         console.error("Erreur de connexion MySQL :", err);
     } else {
@@ -28,7 +27,6 @@ app.get("/", (req, res) => {
     res.redirect("/login");
 });
 
-// Formulaire de login SANS aucune validation côté serveur ni côté client
 app.get("/login", (req, res) => {
     res.send(`
     <html>
@@ -55,17 +53,10 @@ app.get("/login", (req, res) => {
   `);
 });
 
-// Traitement du login AVEC SQL INJECTION (concaténation de chaînes)
 app.post("/login", (req, res) => {
     const { username, password } = req.body;
 
-    // VULNÉRABILITÉ PRINCIPALE : construction de la requête par concaténation
-    const query =
-        "SELECT * FROM users WHERE username = '" +
-        username +
-        "' AND password = '" +
-        password +
-        "'";
+    const query = "SELECT * FROM users WHERE username = '" + username + "' AND password = '" + password + "'";
 
     console.log("Requête exécutée :", query);
 
@@ -92,7 +83,6 @@ app.post("/login", (req, res) => {
     });
 });
 
-// Route de debug totalement non protégée (deuxième vulnérabilité)
 app.get("/debug/users", (req, res) => {
     connection.query("SELECT id, username, password FROM users", (err, results) => {
         if (err) {
@@ -100,7 +90,6 @@ app.get("/debug/users", (req, res) => {
             return res.status(500).send("Erreur base de données");
         }
 
-        // Expose tous les utilisateurs + mots de passe en clair
         res.send(`
       <h1>Debug: liste des utilisateurs</h1>
       <pre>${JSON.stringify(results, null, 2)}</pre>
